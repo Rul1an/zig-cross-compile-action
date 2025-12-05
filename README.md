@@ -63,6 +63,7 @@ We configure the `CARGO_TARGET_..._LINKER` variables.
 | `target` | Target architecture. | `true` | - | e.g. `linux-arm64` |
 | `cmd` | Command to execute. | `true` | - | e.g. `go build ...` |
 | `project-type` | Language preset. | `false` | `auto` | `auto`, `go`, `rust`, `c`, `custom` |
+| `rust-musl-mode` | Policy for Rust+Musl. | `false` | `deny` | `deny`, `warn`, `allow` |
 
 ### Environment & Runners
 

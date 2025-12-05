@@ -7,25 +7,13 @@ set -euo pipefail
 # This script is intended to be SOURCED by the GitHub Action in CI.
 # CAUTION: Sourcing this locally will enable 'set -euo pipefail' in your current shell.
 
-log() { echo "::notice::[zig-action] $1"; }
-# die uses safe_exit to respect sourced execution
-die() { echo "::error::[zig-action] $1"; safe_exit 1; }
-
-# Guard against direct execution if sourced usage is expected, though for Github Actions
-# simply exiting is fine.
-is_sourced() {
-    if [ -n "${BASH_SOURCE-}" ] && [ "${BASH_SOURCE[0]}" != "${0}" ]; then
-        return 0
-    fi
-    return 1
-}
-
 # Logging helper
 if [[ "${ZIG_ACTION_DEBUG:-0}" == "1" ]]; then
     log() { echo "::debug::[zig-action] $1"; }
     # Dump initial environment states for debugging
     echo "::group::[zig-action] Debug Env Dump"
-    env | grep -E '^(ZIG|GO|CARGO|CC|CXX)' || true
+    # Grep strictly for build-related env vars to avoid accidental secret leakage
+    env | grep -E '^(ZIG_|GO(OS|ARCH|FLAGS|ROOT)?=|CARGO_|CC=|CXX=)' || true
     echo "::endgroup::"
 else
     log() { echo "::notice::[zig-action] $1"; }
@@ -79,12 +67,28 @@ if [[ "${RUNNER_OS:-Linux}" == "Windows" ]]; then
     die "Windows runners are not supported as host OS. Use Ubuntu or macOS runners."
 fi
 
-# Project Type logic: strict validation (no accidental fallbacks)
+# Project Type Resolution (Smart Auto)
+# If 'auto', we try to detect the language to avoid conflicting policies (e.g. running Rust checks on a Go project).
+if [[ "$TYPE" == "auto" ]]; then
+    if [[ -f "Cargo.toml" ]] || ls Cargo.toml >/dev/null 2>&1; then
+        TYPE="rust"
+        log "Auto-detected Rust project (found Cargo.toml). Setting project-type='rust'."
+    elif [[ -f "go.mod" ]] || ls go.mod >/dev/null 2>&1; then
+        TYPE="go"
+        log "Auto-detected Go project (found go.mod). Setting project-type='go'."
+    else
+        TYPE="c"
+        log "No Cargo.toml or go.mod found. Defaulting project-type='auto' to fallback 'c'."
+    fi
+fi
+
+# Strict validation check
 case "$TYPE" in
-    auto|go|rust|c|custom)
-        ;;
+    go|rust|c|custom) ;; # valid
     *)
-        log "WARNING: Unknown project-type '$TYPE'. Falling back to 'custom' (compiler injection only)."
+        # Should not be reachable given the normalization above, but safe fallback
+        log "Unknown project-type '$TYPE'. Falling back to 'custom' (compiler-only)."
+        log "Please set 'project-type: c/go/rust' explicitly if you need specific environment overrides."
         TYPE="custom"
         ;;
 esac

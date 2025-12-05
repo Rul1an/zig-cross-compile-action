@@ -26,8 +26,10 @@ runs:
     - name: Setup Zig Cross-Compiler Environment
       shell: bash
       env:
+        INPUT_VERSION: ${{ inputs.version }}
         INPUT_TARGET: ${{ inputs.target }}
         INPUT_PROJECT_TYPE: ${{ inputs.project-type }}
+        INPUT_RUST_MUSL_MODE: ${{ inputs.rust-musl-mode }}
       run: |
         # Resolve script path relative to action location
         SCRIPT_PATH="${GITHUB_ACTION_PATH}/setup-env.sh"
