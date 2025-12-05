@@ -1,5 +1,5 @@
 name: 'Zig Cross-Compiler'
-description: 'Zero-dependency cross-compilation for C, C++, Rust, and Go using Zig.'
+description: 'Cross-compilation for C, C++, Rust, and Go using Zig (no Docker required).'
 inputs:
   version:
     description: 'Zig version to install'

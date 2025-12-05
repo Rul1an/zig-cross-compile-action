@@ -1,11 +1,13 @@
 # zig-cross-compile-action
 
-A composite GitHub ActiZero-docker cross-compilation for C, C++, Rust, and Go using Zig.
-No containers required. Uses Zig's `cc` and `c++` toolchain for hermetic, fast builds.er, handling the messy environment variable overrides for you.
+A composite GitHub Action for cross-compiling C, C++, Rust, and Go using Zig.
+No Docker containers required. Uses Zig's `cc` and `c++` as drop-in compilers, automatically configuring the required environment variables.
 
 ## Why
 Cross-compiling with Docker is slow and file-permissions are often broken. `cross-rs` is heavy.
-Zig ships with its own libc and linker, allowing you to target `linux-musl` or `macos` from a Linux runner without containers.
+Zig ships with its own libc and linker, allowing specific targets (like `linux-musl` or simple `macos` binaries) to build on a standard runner.
+
+> **Note**: macOS cross-compilation works for simple CLI binaries/libs. Full macOS apps requiring Apple Frameworks/SDKs still need a macOS runner.
 
 ## Usage
 
