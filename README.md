@@ -107,6 +107,32 @@ cmake -DCMAKE_C_COMPILER="$CC" -DCMAKE_CXX_COMPILER="$CXX" ...
 make CC="$CC" CXX="$CXX"
 ```
 
+```bash
+make CC="$CC" CXX="$CXX"
+```
+
+### Monorepo Usage
+`project-type: auto` only checks the repository root. For monorepos:
+1. Set `project-type: rust` or `go` explicitly.
+2. Or use `working-directory` in your job steps.
+
+```yaml
+- uses: ./zig-action
+  with:
+    project-type: rust
+    cmd: cd services/my-service && cargo build --release
+```
+
+### Caching (Optional)
+This action is cache-agnostisch. To speed up builds, use `actions/cache`:
+
+```yaml
+- uses: actions/cache@v4
+  with:
+    path: ~/.cache/zig
+    key: zig-${{ runner.os }}-${{ inputs.target }}
+```
+
 ### Aliases & Defaults
 We map convenience aliases to "safe defaults" (usually static Musl for Linux).
 If you need **glibc** or specific versions, use the full Zig target triple (e.g. `x86_64-linux-gnu.2.31`).

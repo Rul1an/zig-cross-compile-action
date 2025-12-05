@@ -14,6 +14,11 @@ if [[ "${ZIG_ACTION_DEBUG:-0}" == "1" ]]; then
     echo "::group::[zig-action] Debug Env Dump"
     # Grep strictly for build-related env vars to avoid accidental secret leakage
     env | grep -E '^(ZIG_|GO(OS|ARCH|FLAGS|ROOT)?=|CARGO_(TARGET|HOME|TERM|INCREMENTAL|PROFILE|ENVDIR|BUILD)=|CC=|CXX=)' || true
+
+    # Extra context for debugging tools
+    if command -v cargo >/dev/null 2>&1; then
+        log "Debug: cargo version: $(cargo --version || echo 'unknown')"
+    fi
     echo "::endgroup::"
 else
     log() { echo "::notice::[zig-action] $1"; }
@@ -173,7 +178,10 @@ if [[ "$TYPE" == "rust" ]]; then
             RUST_MODE="${INPUT_RUST_MUSL_MODE:-deny}"
             case "$RUST_MODE" in
                 deny)
-                    die "Rust+Musl targets are disabled by default (CRT conflicts). Use *-gnu target, cargo-zigbuild, or set rust-musl-mode: warn/allow."
+                    die "Rust+Musl targets are disabled by default (CRT conflicts). Use a *-gnu target, use cargo-zigbuild, or set rust-musl-mode: warn/allow if you know what you're doing.
+Suggested fixes:
+  - target: aarch64-unknown-linux-gnu
+  - or: project-type: c and use 'cargo zigbuild' instead of 'cargo build'."
                     ;;
                 warn)
                     log "WARNING: Rust with Musl targets is known to be flaky due to CRT conflicts."

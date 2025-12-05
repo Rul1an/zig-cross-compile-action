@@ -74,13 +74,22 @@ The core logic script, sourced into the environment.
 ### 3.3 C / C++
 *   **Trigger:** `project-type == c`.
 *   **Behavior:** Sets `CC`, `CXX`. Explicitly sets `CGO_ENABLED=0` to isolate from accidental Go toolchain interactions.
+*   *Decision:* For `type: c`, strictly `export CGO_ENABLED=0` to prevents accidental CGO usage if `go` is somehow invoked in a mixed repo.
 
-## 4. Technical Rationale
+### 2.4 Verification (`verify-level`)
+*   **Default:** `basic` (Runs `file` check).
+*   **None:** `none` (Skips check). Useful for monorepos or custom verification.
 
-### 4.1 Why No Docker?
+### 2.5 Monorepo Support
+*   **Design Choice:** Auto-detection is Root-Only.
+*   **Rationale:** Parsing directory trees for nested `Cargo.toml` is slow and error-prone. Users must be explicit in monorepos.
+
+## 3. Technical Rationale
+
+### 3.1 Why No Docker?
 Avoids nested Docker issues, complex volume permissions, and performance overhead. Enables macOS support.
 
-### 4.2 Opinionated Environment
+### 3.2 Opinionated Environment
 We unconditionally overwrite `CC`, `CXX`, etc. Detailed mixing of "old" and "new" env vars leads to non-deterministic builds. Infrastructure must be authoritative.
 
 ## 5. Testing & Future Roadmap

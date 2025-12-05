@@ -16,6 +16,10 @@ inputs:
     description: 'Policy for Rust+Musl targets: deny (fail), warn (log), allow (silent-ish)'
     required: false
     default: 'deny'
+  verify-level:
+    description: 'Post-build verification: none | basic'
+    required: false
+    default: 'basic'
   cmd:
     description: 'Build command to execute'
     required: true
@@ -48,7 +52,7 @@ runs:
 
     - name: Verify Output (Optional)
       shell: bash
-      if: success() && runner.os != 'Windows'
+      if: success() && runner.os != 'Windows' && inputs.verify-level != 'none'
       run: |
         echo "Checking for output artifacts..."
         # Heuristic to find binary
