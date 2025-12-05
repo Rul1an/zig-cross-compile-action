@@ -22,18 +22,11 @@ runs:
     - name: Setup Zig Cross-Compiler Environment
       shell: bash
       env:
-        INPUT_VERSION: ${{ inputs.version }}
         INPUT_TARGET: ${{ inputs.target }}
         INPUT_PROJECT_TYPE: ${{ inputs.project-type }}
       run: |
         # Resolve script path relative to action location
         SCRIPT_PATH="${GITHUB_ACTION_PATH}/setup-env.sh"
-        if [ ! -f "$SCRIPT_PATH" ]; then
-          # Fallback for local testing where GITHUB_ACTION_PATH might not be set correctly requires absolute path or assumption
-          SCRIPT_PATH="./zig-action/setup-env.sh"
-        fi
-
-        # Source the script to modify current environment (Github Actions requires writing to $GITHUB_ENV)
         source "$SCRIPT_PATH"
 
     - name: Install Zig
@@ -44,13 +37,13 @@ runs:
     - name: Execute Build Command
       shell: bash
       run: |
-        echo "🚀 Running cross-compilation for ${{ inputs.target }}..."
-        eval "${{ inputs.cmd }}"
+        echo "Running cross-compilation for ${{ inputs.target }}..."
+        bash -c "${{ inputs.cmd }}"
 
     - name: Verify Output (Optional)
       shell: bash
-      if: success()
+      if: success() && runner.os != 'Windows'
       run: |
-        echo "🔎 Checking for output artifacts..."
+        echo "Checking for output artifacts..."
         # Heuristic to find binary
         find . -maxdepth 3 -type f -not -path '*/.*' -exec file {} \; | grep -i "ELF\|Mach-O\|PE32" || echo "No obvious binaries found to verify."

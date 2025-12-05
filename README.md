@@ -5,11 +5,14 @@ Sets up `zig cc` as the linker/compiler, handling the messy environment variable
 
 ## Why
 Cross-compiling with Docker is slow and file-permissions are often broken. `cross-rs` is heavy.
-Zig ships with its own libc and linker, meaning you can target `linux-musl` or `macos` from a Linux runner without containers.
+Zig ships with its own libc and linker, allowing you to target `linux-musl` or `macos` from a Linux runner without containers.
 
 ## Usage
 
 ### Go (CGO)
+Configuration `project-type: auto` enables CGO (`CGO_ENABLED=1`) for Linux/macOS targets automatically.
+If you need a pure Go binary (no CGO), set `project-type: custom` or unset `CGO_ENABLED` manually.
+
 ```yaml
 - uses: ./zig-action
   with:
@@ -18,8 +21,14 @@ Zig ships with its own libc and linker, meaning you can target `linux-musl` or `
 ```
 
 ### Rust
-We handle the `CARGO_TARGET_..._LINKER` madness automatically.
+We configure the `CARGO_TARGET_..._LINKER` variables.
+**Note**: You must still install the target via rustup and pass the `--target` flag to Cargo.
+
 ```yaml
+- uses: dtolnay/rust-toolchain@stable
+  with:
+    targets: aarch64-unknown-linux-musl
+
 - uses: ./zig-action
   with:
     target: aarch64-unknown-linux-musl
@@ -41,9 +50,11 @@ We handle the `CARGO_TARGET_..._LINKER` madness automatically.
 | `target` | Zig target (e.g. `x86_64-linux-musl`) or alias | **Required** |
 | `cmd` | Command to run in the configured environment | **Required** |
 | `version` | Zig version (uses `goto-bus-stop/setup-zig`) | `0.13.0` |
+| `project-type` | Controls env setup (`go`, `rust`, `c`, `auto`) | `auto` |
 
-### Aliases
-Mappings for convenience. You can always use the full triple.
+### Aliases & Defaults
+We map convenience aliases to "safe defaults" (usually static Musl for Linux).
+If you need **glibc** or specific versions, use the full Zig target triple (e.g. `x86_64-linux-gnu.2.31`).
 
 * `linux-arm64` -> `aarch64-linux-musl` (Static binary default)
 * `linux-x64`   -> `x86_64-linux-musl`
