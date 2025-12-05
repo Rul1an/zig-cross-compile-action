@@ -43,6 +43,23 @@ if [[ ! "$TARGET" =~ ^[a-zA-Z0-9_\.-]+$ ]]; then
     die "Invalid characters in target string: '$TARGET'"
 fi
 
+# Normalize known Rust-style target triples to Zig-style OS names
+# so we can accept either Zig or Rust triples as input.
+case "$TARGET" in
+    *unknown-linux-musl)
+        TARGET="${TARGET/unknown-linux-musl/linux-musl}"
+        ;;
+    *unknown-linux-gnu)
+        TARGET="${TARGET/unknown-linux-gnu/linux-gnu}"
+        ;;
+    *apple-darwin)
+        TARGET="${TARGET/apple-darwin/macos}"
+        ;;
+    *pc-windows-gnu)
+        TARGET="${TARGET/pc-windows-gnu/windows-gnu}"
+        ;;
+esac
+
 # 1. Alias Resolution
 # We map convenience aliases to "safe defaults" (static musl, etc).
 # Note: MacOS bash is ancient (v3.2), so no associative arrays. Using simple case.
