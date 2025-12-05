@@ -19,12 +19,15 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: '1.23'
+          cache-dependency-path: examples/go-cgo/go.sum
 
       - name: Initialize Go Module
         run: |
           cd examples/go-cgo
-          go mod init example/go-cgo
-          go mod tidy
+          if [ ! -f go.mod ]; then
+            go mod init example/go-cgo
+            go mod tidy
+          fi
 
       - name: Create Dist Dir
         run: mkdir -p dist
@@ -33,9 +36,10 @@ jobs:
         uses: ./ # Uses local action
         with:
           target: linux-arm64
+          project-type: go
           cmd: |
-            cd examples/go-cgo
-            go build -o ../../dist/app-go-arm64 .
+             cd examples/go-cgo
+             go build -o ../../dist/app-go-arm64 .
 
       - name: Verify Go Binary
         run: file dist/app-go-arm64 | grep "ARM aarch64"
@@ -78,6 +82,7 @@ jobs:
         uses: ./
         with:
           target: windows-x64
+          project-type: c
           cmd: $CC examples/c/main.c -o dist/app.exe
 
       - name: Verify C Binary

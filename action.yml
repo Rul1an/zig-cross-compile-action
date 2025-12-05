@@ -33,6 +33,7 @@ runs:
       uses: goto-bus-stop/setup-zig@v2
       with:
         version: ${{ inputs.version }}
+        cache: false
 
     - name: Execute Build Command
       shell: bash
