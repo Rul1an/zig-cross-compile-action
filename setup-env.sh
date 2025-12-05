@@ -133,10 +133,12 @@ if [[ "$TYPE" == "rust" || "$TYPE" == "auto" ]]; then
     if [[ "$ZIG_TARGET" == *.* ]]; then
         log "Skipping Rust linker setup: target '$ZIG_TARGET' contains version suffix."
         log "To cross-compile Rust, use a target without glibc version (e.g. x86_64-linux-gnu)."
-    else
+    elif [[ "$ZIG_TARGET" == *musl* ]]; then
+        log "WARNING: Rust with Musl targets is known to be flaky due to CRT conflicts (duplicate symbols)."
+        log "If the build fails, try switching to a glibc target (*-gnu) or set 'project-type: c' and use 'cargo-zigbuild'."
+        # We proceed anyway, but user is warned.
+
         # 1. Map Zig target to Rust triple
-        # If it already looks like a Rust triple (unknown-linux-*), keep it.
-        # Otherwise, map standard Zig usage to Rust conventions.
         RUST_TRIPLE="$ZIG_TARGET"
         case "$RUST_TRIPLE" in
             *apple-darwin*|*unknown-linux-musl*|*unknown-linux-gnu*|*pc-windows-gnu*)

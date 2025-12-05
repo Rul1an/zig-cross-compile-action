@@ -33,13 +33,15 @@ jobs:
         uses: ./ # Uses local action
         with:
           target: linux-arm64
-          cmd: go build -o dist/app-go-arm64 ./examples/go-cgo
+          cmd: |
+            cd examples/go-cgo
+            go build -o ../../dist/app-go-arm64 .
 
       - name: Verify Go Binary
         run: file dist/app-go-arm64 | grep "ARM aarch64"
 
-  test-rust-musl:
-    name: Rust aarch64-musl
+  test-rust-gnu:
+    name: Rust aarch64-gnu
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repo
@@ -48,18 +50,18 @@ jobs:
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: aarch64-unknown-linux-musl
+          targets: aarch64-unknown-linux-gnu
 
       - name: Build Rust (Release)
         uses: ./
         with:
-          target: aarch64-unknown-linux-musl
+          target: aarch64-unknown-linux-gnu
           cmd: |
             cd examples/rust
-            cargo build --release --target aarch64-unknown-linux-musl
+            cargo build --release --target aarch64-unknown-linux-gnu
 
       - name: Verify Rust Binary
-        run: file examples/rust/target/aarch64-unknown-linux-musl/release/rust_cross | grep "ARM aarch64"
+        run: file examples/rust/target/aarch64-unknown-linux-gnu/release/rust_cross | grep "ARM aarch64"
 
   test-c-windows:
     name: C windows-x64

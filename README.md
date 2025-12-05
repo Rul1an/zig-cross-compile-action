@@ -24,17 +24,17 @@ If you need a pure Go binary (no CGO), set `project-type: custom` or unset `CGO_
 
 ### Rust
 We configure the `CARGO_TARGET_..._LINKER` variables.
-**Note**: You must still install the target via rustup and pass the `--target` flag to Cargo.
+**Note**: Only `*-gnu` targets (glibc) are fully supported. `*-musl` targets are experimental due to potential CRT conflicts between Zig and Rust's self-contained Musl.
 
 ```yaml
 - uses: dtolnay/rust-toolchain@stable
   with:
-    targets: aarch64-unknown-linux-musl
+    targets: aarch64-unknown-linux-gnu
 
 - uses: ./zig-action
   with:
-    target: aarch64-unknown-linux-musl
-    cmd: cargo build --release --target aarch64-unknown-linux-musl
+    target: aarch64-unknown-linux-gnu
+    cmd: cargo build --release --target aarch64-unknown-linux-gnu
 ```
 
 ### C/C++
