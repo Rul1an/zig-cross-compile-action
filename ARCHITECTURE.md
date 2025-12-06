@@ -53,19 +53,63 @@ The bash script `setup-env.sh` is the engine. It performs:
 - `target`: Cleaned to remove dangerous characters (only alphanumerics, dashes, dots allowed).
 - `project-type`: validation against allowlist (`auto`, `go`, `rust`, `c`, `custom`).
 
-### 3.2 Host Validation
-- **Windows Host:** Explicitly **DENIED**.
-  - Reason: Bash path handling and environment variable propagation on Windows runners is brittle for this composite architecture.
-  - Windows is supported as a **target** (`x86_64-windows-gnu`), but the build must run on Linux or macOS.
+### 3.2 Host validation
 
-### 3.3 Rust + Musl Policy
-When `project-type: rust` and the resolved `ZIG_TARGET` contains `musl`, the action enforces a policy controlled by `rust-musl-mode`:
+The action only supports Linux and macOS runners as *hosts*.
 
-- `deny` (default): fails immediately with an explicit error explaining the CRT conflict.
-- `warn`: logs a warning and proceeds.
-- `allow`: logs a note and proceeds.
+- **Windows hosts:** hard fail. `RUNNER_OS == "Windows"` causes an immediate error.
+  Rationale: bash path handling, temporary directories and `$GITHUB_ENV` behavior on Windows runners are too brittle for this composite-action design.
+  Windows remains a supported *target* (`x86_64-windows-gnu`), but builds must run on Linux or macOS.
 
-*Caveat:* `allow` only guarantees that environment variables and the linker wrapper are set. It does **not** guarantee a successful link. Rust’s self-contained Musl CRT and Zig’s Musl CRT both attempt to define startup symbols (`_start`, `_init`), often resulting in duplicates. This action will not inject flags to suppress this conflict.
+### 3.3 Rust + Musl policy
+
+Rust Musl targets ship with their own self-contained C runtime (CRT). Zig ships its own Musl CRT as well.
+If you try to combine both, you typically get duplicate startup symbols such as `_start`, `_start_c`, `_init`, `_fini` from two different CRT implementations.
+
+To make this explicit, the action exposes `rust-musl-mode` with three behaviors:
+
+- `deny` (default):
+  If the effective Zig target contains `musl` and `project-type == rust`, the script fails fast with a clear error explaining the CRT conflict and suggesting alternatives (e.g. use a `*-gnu` target or `cargo-zigbuild` directly).
+
+- `warn`:
+  Same wiring as `allow`, but logs a warning that Rust’s self-contained Musl CRT and Zig’s Musl CRT are likely to clash. The action proceeds but does **not** treat link success as supported behavior.
+
+- `allow`:
+  The script configures the environment as if this were a normal Rust target:
+  - Resolves `ZIG_TARGET` (e.g. `aarch64-linux-musl`).
+  - Maps it to a Rust triple (e.g. `aarch64-unknown-linux-musl`).
+  - Creates a wrapper script in `${RUNNER_TEMP}/zig-wrappers/cc-$ZIG_TARGET-XXXXXX` that runs `zig cc -target "$ZIG_TARGET" "$@"`.
+  - Exports `CARGO_TARGET_<TRIPLE>_LINKER` to point at that wrapper and sets `CC_<TRIPLE>` / `CXX_<TRIPLE>`.
+
+  **Caveat:** `allow` only guarantees that:
+  - the Rust target triple is resolved,
+  - the linker wrapper script is created,
+  - the corresponding `CARGO_TARGET_…_LINKER` environment variable is set.
+
+  It explicitly **does not guarantee** that linking will succeed. The underlying CRT conflict between Rust’s self-contained Musl and Zig’s Musl is not “fixed” by this action.
+  The action will not inject `-nostartfiles`, `-nostdlib` or any other linker flags to suppress duplicate symbols; that choice is left to the caller if they really want to experiment with this combination.
+
+In other words: `rust-musl-mode: allow` is a wiring guarantee, not a support statement.
+
+### 3.4 Validation of Musl wiring
+
+The CI validation suite includes a dedicated job to confirm that `allow` mode behaves as documented without depending on a successful link:
+
+- The job runs `setup-env.sh` directly with:
+  - `INPUT_TARGET=aarch64-unknown-linux-musl`
+  - `INPUT_PROJECT_TYPE=rust`
+  - `INPUT_RUST_MUSL_MODE=allow`
+- It then asserts that:
+  - `CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER` is set in the current shell.
+  - The value points to an existing executable wrapper script in the runner’s temporary directory.
+
+This test verifies that:
+
+1. The `rust-musl-mode` switch is honored.
+2. Target → Rust triple mapping for Musl is correct.
+3. The linker wrapper is created in the expected location and exported via the expected env var.
+
+It deliberately does *not* compile or link a Musl binary, to avoid encoding any “accidental” success into the contract of the action.
 
 ### 3.4 Target Normalization
 Maps user-friendly aliases to Zig targets:
