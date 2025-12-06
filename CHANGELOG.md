@@ -13,33 +13,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Expanded C-matrix in E2E (more Tier-1 targets).
 - Potential second Action specifically for Zig installation (TypeScript/Node-based).
 
-**Added**
-- **Local Development Guide:** Added `CONTRIBUTING.md` with a "Paved Road" guide for running CI locally using `act`.
-- **Local CI Script:** Added `scripts/local-ci.sh` helper to simplify running validation jobs locally (auto-configures architecture emulation).
-- **Verify Level Documentation:** Clarified `verify-level` behavior (soft check) in `README.md`.
 
-**Changed**
-- **Go Version Sync:** Downgraded `examples/go-cgo` to Go 1.23 to match the validation workflow.
-- **Docs:** Refined `README.md` performance section with honest caching framing.
 
 ---
 
 ## [Unreleased]
 
+## [2.6.0] – 2025-12-06
+
 **Added**
-- **Tier 1 Expansion:** Promoted `x86_64-linux-gnu` and `x86_64-linux-musl` from Tier 2 to Tier 1.
-- **New Examples:** Added `examples/c-linux-gnu` and `examples/c-linux-musl` as Verified Reference Architectures.
-- **CI Matrix:** Refactored Linux verification to a standard `test-c-linux-matrix` job covering both GNU and Musl targets.
-- **Coverage:** Extended verification to include dedicated macOS ARM64 runner (`aarch64-macos`) and Windows x64 target (`x86_64-windows-gnu`).
+
+*   **Tier 1 Expansion:** Promoted `x86_64-linux-gnu` and `x86_64-linux-musl` from Tier 2 to Tier 1.
+*   **New Examples:** Added `examples/c-linux-gnu` and `examples/c-linux-musl` as Verified Reference Architectures.
+*   **Local Development:** Added `CONTRIBUTING.md` with a "Paved Road" guide and `scripts/local-ci.sh` for running CI locally (`act`).
+*   **Verify Level Input:** Clarified `verify-level` behavior (`soft check`) in `README.md`.
+*   **CI Matrix:** Refactored Linux verification to a standard scalable matrix strategy.
+*   **Coverage:** Extended verification to include dedicated macOS ARM64 runner and Windows x64 target.
 
 **Changed**
-- **Musl Policy Docs:** Explicitly documented `rust-musl-mode: allow` as "wiring only" in `ARCHITECTURE.md`.
 
-### Performance & Caching
-
-- Documented a recommended `actions/cache@v4` configuration for Zig’s global compilation cache (`~/.cache/zig`) to reduce cross-compilation overhead in CI.
-- Clarified that language/toolchain caches (Cargo `target/`, Go build cache, etc.) remain the responsibility of language-specific tooling and are intentionally out of scope for this action.
-- Dogfooded the Zig cache pattern in the internal validation workflow to verify the setup end-to-end before recommending it to users.
+*   **Musl Policy Docs:** Explicitly documented `rust-musl-mode: allow` as "wiring only".
+*   **Go Version Sync:** Downgraded `examples/go-cgo` to Go 1.23 to match validation workflow.
+*   **Docs:** Refined Performance & Caching section with honest caching framing (`~/.cache/zig`).
 
 ---
 
