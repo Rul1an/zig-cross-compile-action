@@ -56,7 +56,7 @@ runs:
 
     - name: Verify Output (Optional)
       shell: bash
-      if: success() && runner.os != 'Windows' && inputs.verify-level != 'none'
+      if: ${{ success() && runner.os != 'Windows' && inputs['verify-level'] != 'none' }}
       run: |
         echo "Checking for output artifacts..."
         # Heuristic to find binary
