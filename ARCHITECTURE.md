@@ -55,8 +55,8 @@ The bash script `setup-env.sh` is the engine. It performs:
 
 ### 3.2 Host Validation
 - **Windows Host:** Explicitly **DENIED**.
-  - Reason: Bash path handling and environment variable propagation on Windows runners is brittle for this composite architecture.
-  - Windows is supported as a **target** (`x86_64-windows-gnu`), but the build must run on Linux or macOS.
+  - `allow`: logs a note and proceeds.
+    *Caveat:* This only guarantees that environment variables and the linker wrapper are set. It does **not** guarantee a successful link. Rust’s self-contained Musl CRT and Zig’s Musl CRT both attempt to define startup symbols (`_start`, `_init`), often resulting in duplicate symbol errors. This action will not inject flags to suppress this conflict.
 
 ### 3.3 Target Normalization
 Maps user-friendly aliases to Zig targets:

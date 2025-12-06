@@ -15,6 +15,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.5.0] – Validation & Tiers
+
+**Added**
+- **Validation Suite:** dedicated `tests/` directory with dummy projects and `verify-action.yml`.
+- **Tier 1 Definition:** Formalized `aarch64-unknown-linux-gnu` (Rust) and other targets as supported Tier-1 paths.
+
+**Changed**
+- **Rust Validation:** Switched E2E to verify `aarch64-unknown-linux-gnu` (success path) instead of Musl.
+- **Musl Policy:** Explicitly document that `rust-musl-mode: allow` only guarantees environment wiring, not binary linking (due to CRT conflicts).
+- **Windows Tests:** Fixed `test-c-windows` by ensuring the output directory exists.
+
 ## [2.4.3] – Marketplace Final Fix
 
 **Changed**
