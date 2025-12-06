@@ -1,0 +1,68 @@
+name: Validation Suite
+
+on:
+  push:
+    branches:
+      - feature/verification
+  workflow_dispatch:
+
+jobs:
+  validate-go:
+    name: Go CGO (linux-arm64)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+      - name: Build
+        uses: ./
+        with:
+          target: linux-arm64
+          project-type: go
+          cmd: |
+            cd tests/go
+            go build -o ../../dist/go-app .
+      - name: Verify
+        run: file dist/go-app | grep "ARM aarch64"
+
+  validate-rust:
+    name: Rust (linux-musl)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-unknown-linux-musl
+      - name: Build
+        uses: ./
+        with:
+          target: aarch64-unknown-linux-musl
+          project-type: rust
+          rust-musl-mode: allow
+          cmd: |
+            cd tests/rust
+            cargo build --release --target aarch64-unknown-linux-musl
+      - name: Verify Wrapper
+        run: |
+          # Verify that the wrapper script exists and is a script
+          msg=$(ls -l /tmp/zig-wrappers/linker-wrapper* 2>/dev/null || echo "MISSING")
+          if [[ "$msg" == "MISSING" ]]; then
+            echo "Error: Linker wrapper not found in /tmp/zig-wrappers"
+            exit 1
+          fi
+          echo "Found wrapper: $msg"
+
+  validate-c:
+    name: C (windows-x64)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build
+        uses: ./
+        with:
+          target: windows-x64
+          project-type: c
+          cmd: $CC tests/c/main.c -o dist/c-app.exe
+      - name: Verify
+        run: file dist/c-app.exe | grep "PE32+"
