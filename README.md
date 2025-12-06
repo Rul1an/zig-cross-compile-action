@@ -111,11 +111,22 @@ You stay in control of your build commands; the Action guarantees the compiler s
 
 **Verified Target Examples:**
 *   Linux (musl): `x86_64-linux-musl`, `aarch64-linux-musl`
-*   Linux (glibc): `aarch64-unknown-linux-gnu`
+*   Linux (glibc): `x86_64-linux-gnu`, `aarch64-unknown-linux-gnu`
 *   Windows (target): `x86_64-windows-gnu`
 *   macOS (target): `aarch64-macos`, `x86_64-macos`
 
 For a full and up-to-date list of Tier 1/2/3 targets, see [TARGETS.md](TARGETS.md).
+
+## Verified examples
+
+This action is exercised end-to-end in the [`examples/`](examples) directory. If these builds stay green in CI, the corresponding targets are fully supported Tier 1.
+
+- [`examples/go-cgo`](examples/go-cgo) – Go + CGO (static musl)
+- [`examples/rust-aarch64`](examples/rust-aarch64) – Rust (glibc)
+- [`examples/c-linux-gnu`](examples/c-linux-gnu) – C (dynamic glibc x86_64)
+- [`examples/c-linux-musl`](examples/c-linux-musl) – C (static musl x86_64)
+- [`examples/c-windows`](examples/c-windows) – C (Windows x64)
+- [`examples/c-macos`](examples/c-macos) – C (macOS ARM64)
 
 ## Usage Examples
 

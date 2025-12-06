@@ -15,6 +15,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased]
+
+**Added**
+- **Tier 1 Expansion:** Promoted `x86_64-linux-gnu` and `x86_64-linux-musl` from Tier 2 to Tier 1.
+- **New Examples:** Added `examples/c-linux-gnu` and `examples/c-linux-musl` as Verified Reference Architectures.
+- **CI Matrix:** Refactored Linux verification to a standard `test-c-linux-matrix` job covering both GNU and Musl targets.
+- **Coverage:** Extended verification to include dedicated macOS ARM64 runner (`aarch64-macos`) and Windows x64 target (`x86_64-windows-gnu`).
+
+**Changed**
+- **Musl Policy Docs:** Explicitly documented `rust-musl-mode: allow` as "wiring only" in `ARCHITECTURE.md`.
+
+---
+
 ## [2.5.1] – Documentation & Test Fixes
 
 **Fixed**

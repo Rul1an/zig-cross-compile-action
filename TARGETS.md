@@ -37,6 +37,8 @@ Tier-1 targets are exercised on every push and on tagged releases via the `E2E V
 | ------------------------ | -------------------------- | ------------- | ---------------- | ---------------------------------------- | ------------------------------------------------- |
 | Go (CGO) → Linux ARM64   | `aarch64-linux-musl`       | `linux-arm64` | `ubuntu-latest`  | `examples/go-cgo`, `test-go-arm64`       | Static Linux ARM64 binary built with CGO.         |
 | Rust → Linux ARM64 (GNU) | `aarch64-unknown-linux-gnu`| —             | `ubuntu-latest`  | `examples/rust-aarch64`, `test-rust-gnu` | Uses Zig as linker for the Rust target.           |
+| C → Linux x64 (Musl)     | `x86_64-linux-musl`        | `linux-x64`   | `ubuntu-latest`  | `examples/c-linux-musl`, `test-c-linux`  | Static Linux x64, Alpine compatible.              |
+| C → Linux x64 (GNU)      | `x86_64-linux-gnu`         | —             | `ubuntu-latest`  | `examples/c-linux-gnu`, `test-c-linux`   | Standard Glibc Linux x64.                         |
 | C → Windows x64          | `x86_64-windows-gnu`       | `windows-x64` | `ubuntu-latest`  | `examples/c-windows`, `test-c-windows`   | PE64 exe built from a Linux host.                 |
 | C → macOS ARM64          | `aarch64-macos`            | —             | `macos-latest`   | `examples/c-macos`, `test-c-macos`       | Mach-O ARM64 CLI binary on macOS runner.          |
 
@@ -55,13 +57,13 @@ They are good candidates for promotion to Tier 1 in future releases. If you depe
 
 | Target triple              | Alias        | Expected host      | Notes                                                              |
 | -------------------------- | ----------- | ------------------ | ------------------------------------------------------------------ |
-| `x86_64-linux-musl`        | `linux-x64` | `ubuntu-latest`    | Static Linux x64, good for “works across distros” CLI tools.       |
-| `x86_64-linux-gnu`         | —           | `ubuntu-latest`    | Glibc Linux x64, classic server distro target.                     |
 | `x86_64-macos`             | `macos-x64` | `macos-latest`     | Intel macOS, symmetric to the Tier-1 `aarch64-macos` case.         |
 | `armv7-linux-gnueabihf`    | —           | `ubuntu-latest`    | 32-bit ARM (older Raspberry Pi / embedded).                        |
 | `riscv64-linux-gnu`        | —           | `ubuntu-latest`    | RISC-V 64-bit, useful for experimentation and early adopters.      |
 
 In practice, most of these targets can be exercised by copying one of the existing E2E jobs and changing the `target` plus verification step.
+
+> **Note:** `x86_64-linux-gnu` and `x86_64-linux-musl` were promoted to Tier 1 in v2.6.0 (Tier 1 Expansion) after E2E verification.
 
 ---
 
