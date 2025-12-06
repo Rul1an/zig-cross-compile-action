@@ -115,7 +115,7 @@ You stay in control of your build commands; the Action guarantees the compiler s
 *   Windows (target): `x86_64-windows-gnu`
 *   macOS (target): `aarch64-macos`, `x86_64-macos`
 
-*Other Zig-supported targets may work but are considered best effort.*
+For a full and up-to-date list of Tier 1/2/3 targets, see [TARGETS.md](TARGETS.md).
 
 ## Usage Examples
 
