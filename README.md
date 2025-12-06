@@ -6,6 +6,25 @@
 Docker-free cross-compilation for C, C++, Rust, and Go using Zig’s `cc` / `c++` toolchain.
 Turn a standard GitHub Actions runner into a cross-compiling build host — no containers, sysroots, or system headers required.
 
+## Quick start
+
+```yaml
+# Example: Go + CGO to linux-arm64 using Zig as cross-compiler
+- uses: actions/checkout@v4
+
+- uses: actions/setup-go@v5
+  with:
+    go-version: '1.23'
+
+- name: Cross-compile with Zig
+  uses: Rul1an/zig-cross-compile-action@v2
+  with:
+    target: linux-arm64       # → aarch64-linux-musl
+    project-type: go
+    cmd: |
+      go build -o dist/app-go-arm64 ./cmd
+```
+
 ---
 
 ## What this Action does
