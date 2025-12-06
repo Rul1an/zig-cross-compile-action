@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -euo pipefail
 
 # setup-env.sh
@@ -124,15 +124,14 @@ elif [[ "$ZIG_TARGET" == *windows* ]]; then
 fi
 
 # 2. Export Helper
-# Github Actions uses $GITHUB_ENV; local shell uses export.
+# export_var: Writes to GITHUB_ENV (if present) AND exports to current shell.
 export_var() {
     local k="$1"
     local v="$2"
     if [[ -n "${GITHUB_ENV:-}" ]]; then
         printf "%s=%s\n" "$k" "$v" >> "$GITHUB_ENV"
-    else
-        export "$k=$v"
     fi
+    export "$k=$v"
 }
 
 # 3. Compiler Definitions

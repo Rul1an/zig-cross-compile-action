@@ -44,14 +44,22 @@ jobs:
             cd tests/rust
             cargo build --release --target aarch64-unknown-linux-gnu
       - name: Verify Wrapper
+        shell: bash
         run: |
-          # Verify that the wrapper script exists
-          msg=$(ls -l /tmp/zig-wrappers/linker-wrapper* 2>/dev/null || echo "MISSING")
-          if [[ "$msg" == "MISSING" ]]; then
-            echo "Error: Linker wrapper not found in /tmp/zig-wrappers"
+          echo "Checking check: CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=${CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER:-}"
+
+          if [[ -z "${CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER:-}" ]]; then
+            echo "Error: linker env var not set"
             exit 1
           fi
-          echo "Found wrapper: $msg"
+
+          WRAPPER="$CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER"
+          if [[ ! -x "$WRAPPER" ]]; then
+            echo "Error: linker wrapper not found or not executable: $WRAPPER"
+            exit 1
+          fi
+
+          echo "OK: found wrapper at $WRAPPER"
 
   validate-rust-musl-wiring:
     name: Rust (linux-musl) - Wiring Check Only
@@ -64,25 +72,27 @@ jobs:
           INPUT_TARGET: aarch64-unknown-linux-musl
           INPUT_PROJECT_TYPE: rust
           INPUT_RUST_MUSL_MODE: allow
-          # Setup basic outputs for the script to write to if needed,
-          # though strictly setup-env writes to GITHUB_ENV which we can simulate or ignore for this logic check
-          GITHUB_ENV: /dev/null
         run: |
-          # We source the script to test the logic directly without the full action harness
-          # validating that 'allow' sets the variables but doesn't crash.
-
-          # Mock the export_var function since we don't have a real GITHUB_ENV file that persists easily here
-          # or simply let it write to /dev/null and check the local var state if sourced.
-          # Actually, source setup-env.sh usually exports vars to current shell too.
+          # Source the script to test logic.
+          # Now that export_var always exports, we don't need to unset GITHUB_ENV.
 
           source ./setup-env.sh
 
           echo "Checking CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER..."
-          if [[ -z "$CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER" ]]; then
+
+          # Use defensive expansion because set -u is active in setup-env.sh (and might persist)
+          if [[ -z "${CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER:-}" ]]; then
              echo "::error::Linker var not set!"
              exit 1
           fi
+
           echo "OK: Var is set to $CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER"
+
+          if [[ ! -x "$CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER" ]]; then
+            echo "::error::Wrapper path does not exist or is not executable"
+            exit 1
+          fi
+          echo "OK: Wrapper exists."
 
   validate-c:
     name: C (windows-x64)
