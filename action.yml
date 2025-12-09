@@ -193,12 +193,18 @@ runs:
       if: ${{ inputs.sbom == 'true' }}
       shell: bash
       run: |
+         set -euo pipefail
          if [ -z "${{ inputs.sbom_target }}" ]; then
            echo "::error::sbom_target is required when sbom=true"
            exit 1
          fi
+
          "${GITHUB_ACTION_PATH}/scripts/tools-audit.sh" syft
-         syft scan "file:${{ inputs.sbom_target }}" -o "${{ inputs.sbom_format }}" > "${{ inputs.sbom_output }}"
+
+         out="${{ inputs.sbom_output }}"
+         mkdir -p "$(dirname "$out")"
+
+         syft scan "file:${{ inputs.sbom_target }}" -o "${{ inputs.sbom_format }}" > "$out"
 
     - name: Sign Artifact
       if: ${{ inputs.sign == 'true' }}

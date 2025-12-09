@@ -19,6 +19,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.0.1] – 2025-12-09
+
+**Fixed**
+*   **SBOM:** Automatically create parent directory for `sbom_output` if it doesn't exist (fixes `No such file or directory` errors).
+
 ## [3.0.0] – 2025-12-09
 
 **Major Features**
