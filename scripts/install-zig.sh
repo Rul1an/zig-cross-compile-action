@@ -1,132 +1,107 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# install-zig.sh
-# Downloads and installs Zig with strict checksum verification.
-#
-# Inputs (Env Vars):
-#   ZIG_VERSION:    Version to install (default: 0.13.0)
-#   STRICT_VERSION: "true" to fail if version not in JSON, "false" to allow fallback (not implemented yet, fails safe)
-#   RUNNER_TOOL_CACHE: GitHub Actions tool cache directory (optional)
-
-ZIG_VERSION="${ZIG_VERSION:-0.13.0}"
-STRICT_VERSION="${STRICT_VERSION:-true}"
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-JSON_FILE="$SCRIPT_DIR/zig-versions.json"
-
 log() { echo "::notice::[install-zig] $1"; }
 die() { echo "::error::[install-zig] $1"; exit 1; }
 
-# 1. Platform Detection
-OS=$(uname -s | tr '[:upper:]' '[:lower:]')
-ARCH=$(uname -m)
+ZIG_VERSION="${ZIG_VERSION:-0.13.0}"
+STRICT_VERSION="${STRICT_VERSION:-true}"
 
-case "$ARCH" in
-    x86_64)  ARCH="x86_64" ;;
-    aarch64|arm64) ARCH="aarch64" ;;
-    *) die "Unsupported architecture: $ARCH" ;;
+# 1. OS/arch detectie
+OS="$(uname -s)"
+ARCH="$(uname -m)"
+
+case "$OS" in
+  Linux)  OS_TAG="linux" ;;
+  Darwin) OS_TAG="macos" ;;
+  *)      die "Unsupported OS: $OS" ;;
 esac
 
-if [[ "$OS" == "darwin" ]]; then
-    PLATFORM_KEY="${ARCH}-macos"
-elif [[ "$OS" == "linux" ]]; then
-    PLATFORM_KEY="${ARCH}-linux"
-elif [[ "$OS" == *"mingw"* || "$OS" == *"cygwin"* || "$OS" == "windows_nt" ]]; then
-    OS="windows"
-    PLATFORM_KEY="${ARCH}-windows"
-else
-    # Fallback/Unknown
-    PLATFORM_KEY="${ARCH}-${OS}"
-    log "Warning: Unknown OS '$OS', trying key '$PLATFORM_KEY'"
+case "$ARCH" in
+  x86_64|amd64) ARCH_TAG="x86_64" ;;
+  arm64|aarch64) ARCH_TAG="aarch64" ;;
+  *)            die "Unsupported ARCH: $ARCH" ;;
+esac
+
+log "Resolving Zig ${ZIG_VERSION} for ${ARCH_TAG}-${OS_TAG}..."
+
+# 2. Toolcache target (GitHub-hosted: /opt/hostedtoolcache)
+TOOLCACHE_ROOT="${RUNNER_TOOL_CACHE:-/opt/hostedtoolcache}"
+INSTALL_ROOT="${TOOLCACHE_ROOT}/zig/${ZIG_VERSION}/${ARCH_TAG}-${OS_TAG}"
+BIN_PATH="${INSTALL_ROOT}/zig"
+
+# 2a. Als hij al bestaat, alleen exporten en klaar
+if [[ -x "${BIN_PATH}" ]]; then
+  log "Zig already installed at ${BIN_PATH}, reusing."
+  echo "zig_path=${BIN_PATH}" >> "$GITHUB_OUTPUT"
+  echo "zig_version_resolved=${ZIG_VERSION}" >> "$GITHUB_OUTPUT"
+  echo "${INSTALL_ROOT}" >> "$GITHUB_PATH"
+  exit 0
 fi
 
-log "Resolving Zig $ZIG_VERSION for $PLATFORM_KEY..."
+# 3. Download & extract in temp dir
+# Explicitly use -t to avoid platform differences in mktemp if possible,
+# but simply mktemp -d is often enough. User suggested -t zig-install-XXXXXX.
+TMP_DIR="$(mktemp -d)"
+ARCHIVE="${TMP_DIR}/zig.tar.xz"
+EXTRACT_DIR="${TMP_DIR}/extracted"
 
-# 2. Lookup in JSON
-if [[ ! -f "$JSON_FILE" ]]; then
-    die "Version manifest not found at $JSON_FILE"
-fi
+mkdir -p "${EXTRACT_DIR}"
 
-# Use jq to extract data. Fail if jq not installed (standard on runners).
-if ! command -v jq >/dev/null; then
-    die "jq is required but not installed."
-fi
+# Zig officiële tarball naamgeving
+case "${OS_TAG}" in
+  linux)  TARBALL="zig-linux-${ARCH_TAG}-${ZIG_VERSION}.tar.xz" ;;
+  macos)  TARBALL="zig-macos-${ARCH_TAG}-${ZIG_VERSION}.tar.xz" ;;
+esac
 
-URL=$(jq -r --arg v "$ZIG_VERSION" --arg p "$PLATFORM_KEY" '.[$v][$p].url // empty' "$JSON_FILE")
-SHA=$(jq -r --arg v "$ZIG_VERSION" --arg p "$PLATFORM_KEY" '.[$v][$p].sha256 // empty' "$JSON_FILE")
+BASE_URL="https://ziglang.org/download/${ZIG_VERSION}"
+URL="${BASE_URL}/${TARBALL}"
+SHA_URL="${URL}.sha256"
 
-if [[ -z "$URL" || -z "$SHA" ]]; then
-    if [[ "$STRICT_VERSION" == "true" ]]; then
-        die "Version '$ZIG_VERSION' for '$PLATFORM_KEY' not found in zig-versions.json (Strict Mode). Please update the manifest."
-    else
-        log "Version not found in manifest. Non-strict mode not fully implemented for dynamic download. Failing safe."
-        exit 1
-    fi
-fi
+log "Downloading ${URL}..."
+curl -sSfL "${URL}" -o "${ARCHIVE}"
 
-# 3. Download & Verify
-WORK_DIR="${RUNNER_TEMP:-/tmp}/zig-install-Process$$"
-mkdir -p "$WORK_DIR"
-ARCHIVE_NAME=$(basename "$URL")
-ARCHIVE_PATH="$WORK_DIR/$ARCHIVE_NAME"
-
-log "Downloading $URL..."
-curl -sSfL "$URL" -o "$ARCHIVE_PATH"
-
+# 4. Optionele checksum check (strong default)
 log "Verifying checksum..."
-# Calculate SHA256
-if command -v sha256sum >/dev/null; then
-    CALCULATED_SHA=$(sha256sum "$ARCHIVE_PATH" | cut -d' ' -f1)
-elif command -v shasum >/dev/null; then
-    CALCULATED_SHA=$(shasum -a 256 "$ARCHIVE_PATH" | cut -d' ' -f1)
-else
-    die "No sha256sum or shasum found."
-fi
-
-if [[ "$CALCULATED_SHA" != "$SHA" ]]; then
-    die "Checksum mismatch! Expected $SHA, got $CALCULATED_SHA"
-fi
-log "Checksum ok."
-
-# 4. Install
-# Use RUNNER_TOOL_CACHE if available to persist between jobs if cache logic enabled (GitHub logic),
-# but standard pattern is to extract to checks-in path or tool cache.
-# We will use a dedicated path.
-INSTALL_ROOT="${RUNNER_TOOL_CACHE:-$HOME/.local/bin}/zig/$ZIG_VERSION/$PLATFORM_KEY"
-mkdir -p "$INSTALL_ROOT"
-
-log "Extracting to $INSTALL_ROOT..."
-if [[ "$ARCHIVE_NAME" == *.zip ]]; then
-    unzip -q "$ARCHIVE_PATH" -d "$WORK_DIR/extracted"
-else
-    tar -xf "$ARCHIVE_PATH" -C "$WORK_DIR/extracted"
-fi
-
-# Zig archives usually have a top-level folder zig-{os}-{arch}-{version}/
-# We want to move contents to INSTALL_ROOT so that $INSTALL_ROOT/zig exists.
-SUBDIR=$(ls "$WORK_DIR/extracted" | head -n1)
-mv "$WORK_DIR/extracted/$SUBDIR"/* "$INSTALL_ROOT/"
-
-# Verify binary
-ZIG_BIN="$INSTALL_ROOT/zig"
-if [[ ! -x "$ZIG_BIN" ]]; then
-    if [[ "$OS" == "windows" ]]; then
-       # Windows .exe check?
-       if [[ ! -f "$INSTALL_ROOT/zig.exe" ]]; then
-           die "zig.exe not found after extraction."
-       fi
-       ZIG_BIN="$INSTALL_ROOT/zig.exe"
+if curl -sSfL "${SHA_URL}" -o "${ARCHIVE}.sha256"; then
+  # checksum check
+  (
+    cd "${TMP_DIR}"
+    if command -v sha256sum >/dev/null; then
+        sha256sum -c "$(basename "${ARCHIVE}.sha256")"
+    elif command -v shasum >/dev/null; then
+        shasum -a 256 -c "$(basename "${ARCHIVE}.sha256")"
     else
-       die "zig binary not found or not executable at $ZIG_BIN"
+        die "No sha256sum or shasum found."
     fi
+  ) || die "Checksum verification failed."
+  log "Checksum ok."
+else
+  if [[ "${STRICT_VERSION}" == "true" ]]; then
+    die "Checksum file not found for ${ZIG_VERSION} (STRICT_VERSION=true)."
+  else
+    log "No checksum file found; continuing without verification (STRICT_VERSION=false)."
+  fi
 fi
 
-# 5. Output / Path
-log "Successfully installed Zig $($ZIG_BIN version) at $INSTALL_ROOT"
+log "Extracting to temporary dir ${EXTRACT_DIR}..."
+tar -xJf "${ARCHIVE}" -C "${EXTRACT_DIR}"
 
-echo "$INSTALL_ROOT" >> "$GITHUB_PATH"
-# Also set ZIG_PATH output for step reference if needed, but GITHUB_PATH is main mechanism.
-if [[ -n "${GITHUB_OUTPUT:-}" ]]; then
-    echo "zig_path=$ZIG_BIN" >> "$GITHUB_OUTPUT"
-    echo "zig_version_resolved=$ZIG_VERSION" >> "$GITHUB_OUTPUT"
+# 5. Verplaats naar toolcache
+mkdir -p "${INSTALL_ROOT}"
+
+# Extracted dir heet meestal 'zig-linux-x86_64-0.13.0'
+EXTRACTED_SUBDIR="$(find "${EXTRACT_DIR}" -maxdepth 1 -type d -name 'zig-*' | head -n1 || true)"
+if [[ -z "${EXTRACTED_SUBDIR}" ]]; then
+  die "Could not find extracted Zig directory under ${EXTRACT_DIR}"
 fi
+
+log "Installing Zig into ${INSTALL_ROOT}..."
+mv "${EXTRACTED_SUBDIR}/"* "${INSTALL_ROOT}/"
+
+# 6. PATH en outputs
+echo "${INSTALL_ROOT}" >> "$GITHUB_PATH"
+echo "zig_path=${INSTALL_ROOT}/zig" >> "$GITHUB_OUTPUT"
+echo "zig_version_resolved=${ZIG_VERSION}" >> "$GITHUB_OUTPUT"
+
+log "Installation complete. zig=$( "${INSTALL_ROOT}/zig" version )"
